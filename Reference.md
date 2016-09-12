@@ -5,7 +5,7 @@ Snark language reference.
 
 ## Literal
 
-Snark exposes basic literals for primitive values
+Snark exposes basic literals to declare values
 
 ### Keyword literal
 
@@ -125,7 +125,7 @@ let array = [
 ]
 ```
 
-There's a syntactic sugar for array of key-value pairs.
+There's a syntactic shortcut for array of key-value pairs.
 
 ```
 let pairs = [
@@ -158,6 +158,20 @@ obj2.#foo == 42 // true
 ```
 
 ECMAScript provides some well-known symbols to utilize language-level features such as for-of statements. In this flavor, Snark adds some its own well-known symbols to provide new features.
+
+### List of well-known symbols
+
+  - JS well-known symbols
+
+    `#iterator`, `#match`, `#replace`, `#search`, `#split`, `#hasInstance`, `#isConcatSpreadable`, `#unscopable`, `#species`, `#toPrimitive`
+
+    `#asyncIterator` - not in ES2015 spec, but will be added to ES soon. Polyfilled by Snark runtime.
+
+  - Snark well-known symbols
+
+    `#get`, `#set`, `#in`, `#is`
+
+    `#proto` - alias for `__proto__`.
 
 ## Module
 
@@ -196,7 +210,7 @@ obj.#wn = 0
 
 ### Function call
 
-- `func(arg)`
+- `func()`
 
 - `func(arg1, arg2)`
 
@@ -216,20 +230,6 @@ Syntaxes below are just for legacy JS interoperability.
 
 - `obj.#[expr]` - same as `obj[expr]` in JS
 
-### Existential operator
-
-Like one in CoffeeScript, this operator advancing operation only if it will not throw `TypeError`.
-
-```
-obj?.prop // "obj == null ? null : obj.prop" in JS
-
-func?()   // "typeof func !== 'function' ? null : func()" in JS
-
-map?[key] // "typeof map.#get !== 'function' ? null : map.#get(key)" in JS-ish
-
-map?[key -> value] // "typeof map.#set !== 'function' ? null : map.#set(key)" in JS-ish
-```
-
 ### Collection getter/setter
 
 Using Map should be easier then traditional object-as-dictionary approach. That's why Snark adds such a syntax. To use these, first you should declare some well-known symbols. And boom!
@@ -248,17 +248,48 @@ map['foo' -> 42]
 map['foo'] // 42
 ```
 
+### Existential operator
+
+Like one in CoffeeScript, this operator advancing operation only if it will not throw `TypeError`.
+
+```
+obj?.prop // "obj == null ? null : obj.prop" in JS
+
+func?()   // "typeof func !== 'function' ? null : func()" in JS
+
+map?[key] // "typeof map.#get !== 'function' ? null : map.#get(key)" in JS-ish
+
+map?[key -> value] // "typeof map.#set !== 'function' ? null : map.#set(key)" in JS-ish
+```
+
 ### In operator
+
+Check given value is a member of the given collection or not.
+
+```
+let foo = 'foo'
+
+if foo in ['foo', 'bar', 'baz'] {
+  console.log('yup')
+}
+
+if foo not in someListWithoutFoo {
+  console.log('nope')
+}
+```
 
 ## Statement
 
 ### Variable declaration
 
-Declare variable. All variables MUST be declared before use. Initialization is required.
+Declare variable. All variables MUST be declared before use. Initialization is required, not optional.
+
+Snark does not allow underscore(`_`) postfixed variable identifier, like `foo_`. It's not a technical limitation, but just a policy to improve readability of compiled output JS code.
 
 Note that variables cannot be re-assigned except explicitly declared as mutable.
 
 - `let foo = 42`
+
 - `let mut bar = 443`
 
 ### Assignment statement
@@ -266,8 +297,11 @@ Note that variables cannot be re-assigned except explicitly declared as mutable.
 Assign new value to the given place. In-place operation is supported, but prefix/postfix increment/decrement operators are not.
 
 - `mut bar = 80`
+
 - `obj.quux = foo`
+
 - `mut bar += 1`
+
 - `obj.quux *= 2`
 
 ### If statement
@@ -305,7 +339,7 @@ let mut count = 0
 
 while count < 10 {
   doSomething()
-  count += 1
+  mut count += 1
 }
 ```
 
@@ -325,6 +359,21 @@ You can iterate over AsyncIterable or Iterable<Promise> in async context.
 for await name of fetchFriends() {
   addFriend(name)
 }
+```
+
+### Enum statement
+
+Shortcut syntax for declaring constants.
+
+```
+enum PossibleConditions {
+  COND_A, COND_B, COND_C
+}
+
+console.log(COND_A) // 'COND_A'
+
+console.log(COND_B in PossibleConditions) // true
+console.log('NOT_VALID' in PossibleConditions) // false
 ```
 
 ## Function and do statement
@@ -398,6 +447,8 @@ let obj = {
   }
 }
 ```
+
+## Class
 
 ## Pattern matching
 

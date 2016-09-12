@@ -75,7 +75,7 @@ switch {
 }
 ```
 
-Need more? There's a [reference!](./blob/master/Reference.md)
+Need more? There's a [reference!](./Reference.md)
 
 ## License
 
