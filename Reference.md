@@ -175,6 +175,10 @@ ECMAScript provides some well-known symbols to utilize language-level features s
 
 ## Module
 
+### Import
+
+### Export
+
 ### Import from environment
 
 While all variables must be defined before use(except a few language-defined objects), using global variables is very common in JS environment. To do this, you should declare it first.
@@ -206,7 +210,23 @@ obj.#wn = 0
 
 ### Arithmetic operator
 
+- `1 + 2 == 3`
+
+- `1 - 2 == -1`
+
+- `1 * 2 == 2`
+
+- `1 / 2 == 0.5`
+
+Note that `+` operator should be used only with numbers. Though it's possible to concat strings with this operator as JS supports it, it's highly discouraged. See [template string](#template-string-literal) for details.
+
 ### Logical operator
+
+- `and`
+
+- `or`
+
+- `not`
 
 ### Function call
 
@@ -276,6 +296,16 @@ if foo in ['foo', 'bar', 'baz'] {
 if foo not in someListWithoutFoo {
   console.log('nope')
 }
+```
+
+### Virtual method
+
+Also known as `Function bind syntax`. This syntax binds given object as a execution context to the following function. For detail, see [method](#Method) section.
+
+```
+myIterable::map(mapFn)::filter(filterFn)
+
+passCallback(obj::handler)
 ```
 
 ## Statement
@@ -455,3 +485,5 @@ let obj = {
 ## Range expression
 
 ## Decorator
+
+## Macro
