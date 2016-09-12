@@ -175,11 +175,49 @@ ECMAScript provides some well-known symbols to utilize language-level features s
 
 ## Module
 
+Snark module has same semantics as ES2015 module spec, to provide complete interoperability with JS.
+
+Check [here](https://blogs.windows.com/msedgedev/2016/05/17/es6-modules-and-beyond/#6i0OmkY8euSIiFd2.97) for more details.
+
 ### Import
+
+Import variables from other module. Just identical with ES2015 import spec.
+
+- `import defaultMember from 'mylib'`
+
+- `import * as namespace from 'mylib'`
+
+- `import {member1, member2} from 'mylib'`
+
+- `import {member as alias} from 'mylib'`
+
+- `import defaultMember, * as namespace, {member1, member2 as alias} from 'mylib'`
+
+- `import 'mylib'`
 
 ### Export
 
+Export variables to other module. Almost identical with ES2015 export spec, with a few extras.
+
+Unlike import statement, export statement can be used anywhere of source code's top level scope.
+
+- `export default <any expression here>`
+
+- `export {member1, member2 as alias}`
+
+- `export <variable/function/class declaration here>`
+
+- `export * from 'mylib'`
+
+- `export {member1, member2 as alias} from 'mylib'`
+
+- `export defaultMember from 'mylib'`
+
+- `export * as namespace from 'mylib'`
+
 ### Import from environment
+
+`use` statement is used for importing things from runtime environment. Like `import` statement, `use` statement must be placed before any other statements.
 
 While all variables must be defined before use(except a few language-defined objects), using global variables is very common in JS environment. To do this, you should declare it first.
 
