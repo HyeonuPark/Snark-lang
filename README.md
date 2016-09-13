@@ -49,9 +49,9 @@ for i of 1~100 {
 }
 
 console.log(
-  match student.age {
-    _ ~< 14 -> "${student.name} cannot get driver's license"
-    14~  _  -> "${student.name} can get his/her driver's license"
+  switch student.age {
+    case  _ ~<14 -> "${student.name} cannot get driver's license"
+    case 14 ~ _  -> "${student.name} can get his/her driver's license"
   }
 )
 
@@ -60,16 +60,16 @@ let students = Map::new()
 students[bart.name -> bart]
 
 switch {
-  bart.name not in students {
+  bart.name not in students -> do {
     console.log('Isn\'t he a student?')
   }
-  bart.age != 10 {
+  bart.age != 10 -> do {
     console.log('He should be 10')
   }
-  bart.gender?.toUpperCase?() == 'MALE' {
+  bart.gender?.toUpperCase?() == 'MALE' -> do {
     console.log('Well.. maybe it\'s lisa, his sister')
   }
-  else {
+  else -> do {
     console.log('Everything has done right')
   }
 }

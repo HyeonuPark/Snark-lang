@@ -111,6 +111,13 @@ let bar = quux
 let obj = {foo, bar}
 ```
 
+You can include another object into newly created object, using `Object.assign()`.
+
+```
+let obj1 = {bar = 1, baz = 2}
+let obj2 = {foo = 0, ...obj1} // {foo = 0, bar = 1, baz = 2}
+```
+
 ### Array literal
 
 Array is synchronous in-memory sequence object. Elements can be accessed by its index value.
@@ -123,6 +130,13 @@ let array = [
   bar
   quux
 ]
+```
+
+You can include another iterable into newly created array.
+
+```
+let array1 = [3, 4, 5]
+let array2 = [1, 2, ...array1] // [1, 2, 3, 4, 5]
 ```
 
 There's a syntactic shortcut for array of key-value pairs.
@@ -169,7 +183,7 @@ ECMAScript provides some well-known symbols to utilize language-level features s
 
   - Snark well-known symbols
 
-    `#get`, `#set`, `#in`, `#is`
+    `#get`, `#set`, `#in`, `#case`
 
     `#proto` - alias for `__proto__`.
 
@@ -245,6 +259,8 @@ obj.#wn = 0
 ```
 
 ## Expression
+
+Expressions can be evaluated as a value.
 
 ### Arithmetic operator
 
@@ -348,6 +364,8 @@ passCallback(obj::handler)
 
 ## Statement
 
+Statements are instruction to define how program is executed. They cannot be evaluated as a value.
+
 ### Variable declaration
 
 Declare variable. All variables MUST be declared before use. Initialization is required, not optional.
@@ -446,9 +464,11 @@ console.log('NOT_VALID' in PossibleConditions) // false
 
 ## Function and do statement
 
+Snark does not support traditional function syntax, Like `function (arguments) {function body}`. To implement this, you must combine function AND do statement.
+
 ### Function
 
-Functions takes arguments and returns output. They may has optional name, for recursive call and easy debugging.
+Functions takes arguments and returns output value. They may has optional name, for recursive call and easy debugging.
 Named function in statement-level will be treated as function declaration. Unlike JS, they will not be hosted.
 
 ```
@@ -457,13 +477,11 @@ arr.map(el => "${el} is nice")
 let random = (min, max) => min + (Math.random() * (max - min))
 // same effect as following
 fn random (min, max) => min + (Math.random() * (max - min))
-// well this also possible but..
+// well this also same but..
 let random = fn random (min, max) => min + (Math.random() * (max - min))
 ```
 
 ### Do statement
-
-Snark does not support traditional function syntax. To implement this, you must combine function AND do statement.
 
 Do statement has same effect as IIEF, a well-known pattern in JS.
 
@@ -518,10 +536,82 @@ let obj = {
 
 ## Class
 
+Snark's class syntax is not same as ES2015 class syntax. Check [class document](./Class.md) for details.
+
 ## Pattern matching
 
+Pattern matching is a common pattern in functional programming language to wrap values with additional information. Check [pattern matching document](./PatternMatching.md) for details.
+
 ## Range expression
+
+It's infinitely common pattern to use numeric sequence in programming. Snark provide syntactic shortcut for such patterns.
+
+Basic syntax for range expression is `a ~ b`. It generate `Range` object with range from a to b, inclusive. Value of `a` and `b` must be a number and follows `a <= b` or it throws error. To mark some endpoint as exclusive, add `<` at that side. ex) `a ~< b` or `a <~ b`, or both side.
+
+### In operator
+
+Evaluated as true if value is number and within given range.
+
+```
+3 in 2~4  // true
+5 in 5~<7 // true
+7 in 5~<7 // false
+```
+
+### Case operator
+
+Same as `in` operator. Extracts value itself.
+
+```
+switch getNum() {
+  case 1~4 as i -> doSomething(i)
+  else -> doNothing()
+}
+```
+
+### For of statement
+
+Iterate from left number to right number with interval 1. Bottom-exclusive range is not valid for this usage.
+
+```
+for i of 1~<5 {
+  console.log(i)
+}
+// 1 2 3 4
+```
 
 ## Decorator
 
 ## Macro
+
+Macro is a compile-time-function which takes source code and replace it with another source code. This is useful for library author who want to embed custom DSL to library.
+
+```
+regexp!("^Hello, ([A-Za-z]+)!$", 'i')
+```
+
+```
+jsx!(
+  [div
+    [HeaderComponent, {title = 'most awesome page in the web'}]
+
+    this.prop.children
+
+    [FooterComponent
+      {
+        name = 'rob.co'
+        tel = '123-456-7890'
+        logoUrl = 'logo.example.com'
+      }
+    ]
+  ]
+)
+```
+
+```
+@!stackless
+fn factorial num => switch num {
+  case _~1 -> 1
+  else as n -> n * factorial(n - 1)
+}
+```
