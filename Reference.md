@@ -3,9 +3,32 @@ Language reference
 
 Snark language reference.
 
+## Line break semantics
+
+Snark is not a free form language like C, nor formatting with indentation like python. The only whitespace specially treated by Snark is [line terminators](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Lexical_grammar#Line_terminators).
+
+In most situations, Snark treat line break as a separator token(`,` or `;`). So it can be used to separate statements or elements of array.
+
+```
+let array = [
+  'foo'
+  'bar'
+  'baz'
+]
+array[0] // 'foo'
+```
+
+If some tokens(only `.` and `::`) lead the new line, line break right before this token is invalidated. This is the only exception of this rule.
+
+```
+let array = ['foo', 'bar', 'baz']
+  .map(mapFn)
+  .filter(filterFn)
+```
+
 ## Literal
 
-Snark exposes basic literals to declare values
+Snark exposes basic literals to represent values
 
 ### Keyword literal
 
@@ -36,6 +59,8 @@ You can freely insert `_` characters between numbers to improve readability. Hex
 - `0x1D_2E_3F`
 
 ### String literal
+
+String literal inject text data into the program.
 
 `\n` will be replaced with space and indentations will be removed.
 
@@ -94,7 +119,11 @@ let longGreeting = """
 
 ### Object literal
 
-Object is a basic building block of the program. Like JS, Snark object is a collection of named properties.
+Object is a basic building block of the program. In JS, objects are just collection of named properties.
+
+Object literal is composed of zero or more properties between curly braces(`{}`). Property follows the `name = value` form. `name` is the key to access this property. This can be either `Identifier` like `foo` or `Symbol identifier` like `#foo`. `value` is the initializer value of this property.
+
+Property can be written as a shorthand form. For example, `{foo}` has the same meaning of `{foo = foo}`.
 
 Note that line break(`\n` character in source code) has lexical meaning in Snark. They can replace separator tokens like `,` or `;`. so you can omit `,` in multi-line object literal.
 
@@ -111,25 +140,29 @@ let bar = quux
 let obj = {foo, bar}
 ```
 
-You can include another object into newly created object, using `Object.assign()`.
+You can copy another object into newly created object, using `Object.assign()` under the hood.
 
 ```
-let obj1 = {bar = 1, baz = 2}
-let obj2 = {foo = 0, ...obj1} // {foo = 0, bar = 1, baz = 2}
+let obj1 = {foo = 0, bar = 1}
+let obj2 = {...obj1, bar = 3, baz = 4} // {foo = 0, bar = 3, baz = 4}
 ```
 
 ### Array literal
 
 Array is synchronous in-memory sequence object. Elements can be accessed by its index value.
 
+Array literal is composed of zero or more elements between square brackets(`[]`).
+
 ```
-let array = [foo, bar, quux]
+let array = ['foo', 'bar', 'quux']
 // same as
 let array = [
-  foo
-  bar
-  quux
+  'foo'
+  'bar'
+  'quux'
 ]
+
+array[0] // 'foo'
 ```
 
 You can include another iterable into newly created array.
@@ -155,9 +188,9 @@ let pairs = [
 ]
 ```
 
-## Symbol
+## Symbol identifier
 
-Like string, Symbol can be used as a variable name or a property key. But it's guaranteed to be unique across all modules.
+Like normal identifiers, Symbol identifiers can be used as a variable name or a property key. But it's guaranteed to be unique across all modules.
 
 ```
 let #foo = 42
@@ -171,13 +204,13 @@ let obj2 = {
 obj2.#foo == 42 // true
 ```
 
-ECMAScript provides some well-known symbols to utilize language-level features such as for-of statements. In this flavor, Snark adds some its own well-known symbols to provide new features.
+ECMAScript provides some well-known symbols to allow customizing language-level features such as for-of statements. In this flavor, Snark adds some its own well-known symbols to provide new features.
 
 ### List of well-known symbols
 
   - JS well-known symbols
 
-    `#iterator`, `#match`, `#replace`, `#search`, `#split`, `#hasInstance`, `#isConcatSpreadable`, `#unscopable`, `#species`, `#toPrimitive`
+    `#iterator`, `#match`, `#replace`, `#search`, `#split`, `#hasInstance`, `#isConcatSpreadable`, `#unscopable`, `#species`, `#toPrimitive`, `#toStringTag`
 
     `#asyncIterator` - not in ES2015 spec, but will be added to ES soon. Polyfilled by Snark runtime.
 
@@ -185,13 +218,35 @@ ECMAScript provides some well-known symbols to utilize language-level features s
 
     `#get`, `#set`, `#in`, `#case`
 
-    `#proto` - alias for `__proto__`.
+    `#proto` - alias for `'__proto__'`.
 
 ## Module
 
 Snark module has same semantics as ES2015 module spec, to provide complete interoperability with JS.
 
-Check [here](https://blogs.windows.com/msedgedev/2016/05/17/es6-modules-and-beyond/#6i0OmkY8euSIiFd2.97) for more details.
+Check [here](https://blogs.windows.com/msedgedev/2016/05/17/es6-modules-and-beyond) for more details.
+
+### Export
+
+Export variables to other module. Almost identical with ES2015 export spec, with a few extras.
+
+Export statement can only be used within source code's top level scope.
+
+- `export default <any expression here>`
+
+- `export {member1, member2 as alias}`
+
+- `export <any declaration here>`
+
+- `export * from 'mylib'`
+
+- `export {member1, member2 as alias} from 'mylib'`
+
+- `export defaultMember from 'mylib'`
+
+- `export * as namespace from 'mylib'`
+
+Note that variables with `Symbol identifier` like `#foo` cannot be exported, as symbol identifier is not meant for sharing.
 
 ### Import
 
@@ -209,41 +264,31 @@ Import variables from other module. Just identical with ES2015 import spec.
 
 - `import 'mylib'`
 
-### Export
-
-Export variables to other module. Almost identical with ES2015 export spec, with a few extras.
-
-Unlike import statement, export statement can be used anywhere of source code's top level scope.
-
-- `export default <any expression here>`
-
-- `export {member1, member2 as alias}`
-
-- `export <variable/function/class declaration here>`
-
-- `export * from 'mylib'`
-
-- `export {member1, member2 as alias} from 'mylib'`
-
-- `export defaultMember from 'mylib'`
-
-- `export * as namespace from 'mylib'`
+Note that you can't use `Symbol identifier` in normal import statement.
 
 ### Import from environment
 
-`use` statement is used for importing things from runtime environment. Like `import` statement, `use` statement must be placed before any other statements.
+`import` statement without `from` clause is used for importing things from runtime environment. Like normal `import` statement, they must be placed before any other statements.
+
+Snark provides easy way to get global object. In fact, it's pseudo-global object that acts as read-only global object. Because Snark runtime specially treats real global object to handle some JS hacks like `this` unwrapping.
+
+```
+import window
+// or
+import global
+```
 
 While all variables must be defined before use(except a few language-defined objects), using global variables is very common in JS environment. To do this, you should declare it first.
 
 ```
-use navigator, document as doc
+import {navigator, document as doc}
 // now you can use navigator and document(as variable 'doc') object
 ```
 
 If you want to use some well-known symbols in your module, declare it.
 
 ```
-use #iterator as #itr, #get
+import {#iterator as #itr, #get}
 
 myList.#itr = myIteratorGenerator
 // myList[Symbol.iterator] = myIteratorGenerator
@@ -252,11 +297,13 @@ myList.#itr = myIteratorGenerator
 If you want to shorten some weird-and-unnecessarily-long-property-name(TM), declare it.
 
 ```
-use 'weird-and-unnecessarily-long-property-name' as #wn
+import {'weird-and-unnecessarily-long-property-name' as #wn}
 
 obj.#wn = 0
 // obj['weird-and-unnecessarily-long-property-name'] = 0
 ```
+
+Note that you can only shorten property name to symbol identifiers, to prevent namespace conflict. for example, `import {'long' as l}` is not allowed.
 
 ## Expression
 
@@ -264,23 +311,45 @@ Expressions can be evaluated as a value.
 
 ### Arithmetic operator
 
-- `1 + 2 == 3`
+- `1 + 2 // 3`
 
-- `1 - 2 == -1`
+- `1 - 2 // -1`
 
-- `1 * 2 == 2`
+- `1 * 2 // 2`
 
-- `1 / 2 == 0.5`
+- `1 / 2 // 0.5`
 
 Note that `+` operator should be used only with numbers. Though it's possible to concat strings with this operator as JS supports it, it's highly discouraged. See [template string](#template-string-literal) for details.
 
 ### Logical operator
 
-- `and`
+Logical operators are used for boolean arithmetic.
 
-- `or`
+- `a and b` - both `a` and `b` are truthy.
 
-- `not`
+- `a or b` - either `a` or `b` is truthy.
+
+- `not a` - `a` is not truthy.
+
+### Comparison operator
+
+- `a == b` - `a` and `b` are strictly equal.
+
+- `a != b` - `a` and `b` are not strictly equal.
+
+Note that non-strict equality operators(`===` and `!==` in JS) is not exist in Snark.
+
+Operators below are only able to be used with numbers.
+
+- `a > b` - `a` is greater then `b`
+
+- `a < b` - `a` is lesser then `b`
+
+- `a >= b` - `a` is not lesser then `b`
+
+- `a <= b` - `a` is not greater then `b`
+
+Note that `=>` keyword is used for function, not for comparison.
 
 ### Function call
 
@@ -304,12 +373,34 @@ Syntaxes below are just for legacy JS interoperability.
 
 - `obj.#[expr]` - same as `obj[expr]` in JS
 
+### Virtual method
+
+Also known as `Function bind syntax`. This syntax binds given object as a execution context to the following function. For detail, see [method](#Method) section.
+
+```
+myIterable::map(mapFn)::filter(filterFn)
+// in JS, filter.call(map.call(myIterable, mapFn), filterFn)
+
+passCallback(obj::handler)
+// in JS, passCallback(handler.bind(obj))
+```
+
+As `new Class()` syntax is not exist, Snark provides `new` keyword as a meta virtual method. Use this to instantiate your classes.
+
+```
+let map = Map::new([
+  'foo' -> 0
+  'bar' -> 2
+  'baz' -> 7
+])
+```
+
 ### Collection getter/setter
 
 Using Map should be easier then traditional object-as-dictionary approach. That's why Snark adds such a syntax. To use these, first you should declare some well-known symbols. And boom!
 
 ```
-use #get, #set
+import {#get, #set}
 
 let innerMap = Map::new()
 
@@ -320,6 +411,20 @@ let map = {
 
 map['foo' -> 42]
 map['foo'] // 42
+```
+
+This can makes some syntactic inconsistency with plain ol' JS object like `Array` or `Map`. To solve it, Snark runtime monkey-patch some built-in objects for it.
+
+```
+let map = Map::new()
+
+map['foo' -> 'bar']
+map['foo'] // 'bar'
+
+let array = ['foo', 'bar', 'baz']
+
+array[2] // 'baz'
+array[3 -> 'quux'] // returns modified array itself.
 ```
 
 ### Existential operator
@@ -334,6 +439,8 @@ func?()   // "typeof func !== 'function' ? null : func()" in JS
 map?[key] // "typeof map.#get !== 'function' ? null : map.#get(key)" in JS-ish
 
 map?[key -> value] // "typeof map.#set !== 'function' ? null : map.#set(key)" in JS-ish
+
+obj?.prop?[key]?()
 ```
 
 ### In operator
@@ -352,14 +459,53 @@ if foo not in someListWithoutFoo {
 }
 ```
 
-### Virtual method
-
-Also known as `Function bind syntax`. This syntax binds given object as a execution context to the following function. For detail, see [method](#Method) section.
+Under the hood, this syntax is a shortcut for calling collection's method named with well-known symbol `#in`.
 
 ```
-myIterable::map(mapFn)::filter(filterFn)
+import {#in}
 
-passCallback(obj::handler)
+let fwords = {
+  #in = arg => (arg in case String) and (arg.startsWith('f'))
+}
+
+'foo' in fwords // true
+```
+
+### Case operator
+
+Perform one time pattern matching. For detail, see [pattern matching](#pattern-matching).
+
+```
+if myBreakfast case of Pizza as {topping, dough} {
+  console.log("I ate pizza with ${topping} over ${dough}")
+}
+```
+
+### Switch expression
+
+`switch` is expression in Snark. It checks given value with applied conditions and return evaluated expression of matching one.
+
+Basically, condition matching in switch expression is strict equality check, same as `==` operator.
+
+```
+console.log(switch 'bar' {
+  'foo' -> 'found "foo"'
+  'bar' -> 'found "bar"'
+  'baz' -> 'found "baz"'
+  else as unknown -> "found unknown value <${unknown}>"
+})
+// found "bar"
+```
+
+If condition clause starts with `case` keyword, it performs pattern matching instead. See [here](#pattern-matching) for more detail.
+
+```
+console.log(switch myBreakfast {
+  case Pizza as {topping, dough} -> "I ate pizza with ${topping} over ${dough}"
+  case Pancake -> 'I ate pancake'
+  case Donut as {isRing} with isRing -> "I ate ring-shaped Donut"
+  else -> 'I ate ...something'
+})
 ```
 
 ## Statement
@@ -382,11 +528,11 @@ Note that variables cannot be re-assigned except explicitly declared as mutable.
 
 Assign new value to the given place. In-place operation is supported, but prefix/postfix increment/decrement operators are not.
 
-- `mut bar = 80`
+- `bar = 80`
 
 - `obj.quux = foo`
 
-- `mut bar += 1`
+- `bar += 1`
 
 - `obj.quux *= 2`
 
@@ -425,7 +571,7 @@ let mut count = 0
 
 while count < 10 {
   doSomething()
-  mut count += 1
+  count += 1
 }
 ```
 
@@ -578,40 +724,4 @@ for i of 1~<5 {
   console.log(i)
 }
 // 1 2 3 4
-```
-
-## Decorator
-
-## Macro
-
-Macro is a compile-time-function which takes source code and replace it with another source code. This is useful for library author who want to embed custom DSL to library.
-
-```
-regexp!("^Hello, ([A-Za-z]+)!$", 'i')
-```
-
-```
-jsx!(
-  [div
-    [HeaderComponent, {title = 'most awesome page in the web'}]
-
-    this.prop.children
-
-    [FooterComponent
-      {
-        name = 'rob.co'
-        tel = '123-456-7890'
-        logoUrl = 'logo.example.com'
-      }
-    ]
-  ]
-)
-```
-
-```
-@!stackless
-fn factorial num => switch num {
-  case _~1 -> 1
-  else as n -> n * factorial(n - 1)
-}
 ```

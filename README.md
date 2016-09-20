@@ -16,10 +16,12 @@ Additionally, Snark adds bunch of cool features which makes it easy to use such 
 ## Overview
 
 ```
+import {console}
+
 let number = 10
 let mut isNice = false
 
-mut isNice = true
+isNice = true
 
 if isNice {
   let language = 'Snark'
@@ -30,7 +32,7 @@ if isNice {
     Please follow this document and you can feel it!
   """
 } else {
-  // Well, I don't think this block will be executed
+  // Well, I don't think this block can be executed
 }
 
 let name = 'Bart Simpson'
