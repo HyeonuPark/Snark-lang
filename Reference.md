@@ -5,7 +5,7 @@ Snark language reference.
 
 ## Line break semantics
 
-Snark is not a free form language like C, nor formatting with indentation like python. The only whitespace specially treated by Snark is [line terminators](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Lexical_grammar#Line_terminators).
+Snark is not a free form language like C, nor formatting with indentation like python. The only whitespace character specially treated by Snark is [line terminators](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Lexical_grammar#Line_terminators).
 
 In most situations, Snark treat line break as a separator token(`,` or `;`). So it can be used to separate statements or elements of array.
 
@@ -32,7 +32,9 @@ Snark exposes basic literals to represent values
 
 ### Keyword literal
 
-These keywords are reserved as a representation of primitive values. They are identical with matching JS literal.
+These keywords are reserved as a representation of primitive values. You cannot make variables with same name as one of these.
+
+Singleton literal
 
 - `null`
 
@@ -40,9 +42,34 @@ These keywords are reserved as a representation of primitive values. They are id
 
 - `false`
 
+### Placeholder literal
+
+`_` keyword is used for placeholder literal. Mostly you can read it as "Ignore this place". This literal is adopted mostly for pattern matching.
+
+When used as assignment pattern, values that targets this literal will simply be ignored.
+
+```
+let [a, _, c] = [1 ~ 5]
+// a == 1, c == 3
+
+for [_, data] of someMap {
+  console.log(data)
+}
+```
+
+When used as expression, it represent value that is `undefined` or `void 0` in JS.
+
+```
+let obj = {}
+
+obj.foo == _ // true
+```
+
 ### Number literal
 
 You can freely insert `_` characters between numbers to improve readability. Hexadecimal, octal, binary and scientific representation are also supported.
+
+Note that `_` prefixed numbers are treated as normal identifier.
 
 - `42`
 
@@ -57,6 +84,10 @@ You can freely insert `_` characters between numbers to improve readability. Hex
 - `5.3e12`
 
 - `0x1D_2E_3F`
+
+Not this
+
+- `_123`
 
 ### String literal
 
@@ -125,7 +156,7 @@ Object literal is composed of zero or more properties between curly braces(`{}`)
 
 Property can be written as a shorthand form. For example, `{foo}` has the same meaning of `{foo = foo}`.
 
-Note that line break(`\n` character in source code) has lexical meaning in Snark. They can replace separator tokens like `,` or `;`. so you can omit `,` in multi-line object literal.
+Note that line break(`\n` character in source code) has lexical meaning in Snark. So you can omit `,` in multi-line object literal.
 
 ```
 let obj = {foo = 42, bar = 'quux'}
@@ -188,9 +219,9 @@ let pairs = [
 ]
 ```
 
-## Symbol identifier
+## Private identifier(Symbol)
 
-Like normal identifiers, Symbol identifiers can be used as a variable name or a property key. But it's guaranteed to be unique across all modules.
+Like normal identifiers, private identifiers can be used as a variable name or a property key. But it's guaranteed to be unique across all modules.
 
 ```
 let #foo = 42
@@ -204,9 +235,23 @@ let obj2 = {
 obj2.#foo == 42 // true
 ```
 
-ECMAScript provides some well-known symbols to allow customizing language-level features such as for-of statements. In this flavor, Snark adds some its own well-known symbols to provide new features.
+Under the hood, each private identifiers are ES2015 Symbol object.
+
+```
+// Snark
+
+obj.#prop
+
+// JavaScript
+
+const __symbol_prop = Symbol('prop')
+
+obj[__symbol_prop]
+```
 
 ### List of well-known symbols
+
+ECMAScript provides some well-known symbols to allow customizing language-level features such as for-of statements. In this flavor, Snark adds some its own well-known symbols to provide new features.
 
   - JS well-known symbols
 
@@ -512,11 +557,31 @@ console.log(switch myBreakfast {
 
 Statements are instruction to define how program is executed. They cannot be evaluated as a value.
 
+### Assignment statement
+
+Assign some value to variable or object property.
+
+- `foo = 'bar'`
+
+- `obj.#bar = 'baz'`
+
+#### Assignment pattern
+
+1. Identifier pattern
+
+  `<identifier>`
+
+  assign value to the variable with given identifier.
+
+1. Object pattern
+
+  `{ <identifier>, <identifier> as <assignment pattern>, ... }`
+
+  Destructure given
+
 ### Variable declaration
 
-Declare variable. All variables MUST be declared before use. Initialization is required, not optional.
-
-Snark does not allow underscore(`_`) postfixed variable identifier, like `foo_`. It's not a technical limitation, but just a policy to improve readability of compiled output JS code.
+Declare variable to the current scope. All variables MUST be declared before use. Initialization is required, not optional.
 
 Note that variables cannot be re-assigned except explicitly declared as mutable.
 
@@ -524,9 +589,29 @@ Note that variables cannot be re-assigned except explicitly declared as mutable.
 
 - `let mut bar = 443`
 
+Generally variable declaration statement follows `let <assignment pattern> = <expression>` form. But object property pattern is not allowed here.
+
+- `let {age, parents as [father, mother]} = john`
+
+Snark does not allow double-underscore(`__`) prefixed variable name like `__foo`. It's not a technical limitation, but just a policy to improve readability of compiled output JS code.
+
 ### Assignment statement
 
-Assign new value to the given place. In-place operation is supported, but prefix/postfix increment/decrement operators are not.
+Assign new value to the given place. Assignment statement follows `<assignment pattern> = <expression>` form.
+
+Note that assignment is statement, not a expression. So you can't use this inside of `if` condition.
+
+#### Assignment pattern
+
+Position that assignment can be applied.
+
+- Mutable variable - `foo = 42`
+
+- Object property - `obj.foo = 42`, `obj.#foo = 42`
+
+- Object pattern - `{}`
+
+- Array pattern - `[foo, bar] = someList`
 
 - `bar = 80`
 
@@ -673,11 +758,14 @@ In some case, we should access function's execution context called `this`. Unlik
 
 ```
 let obj = {
-  size = 0
+  size = 2
   grow = (this, amount) => do {
     this.size += amount
   }
 }
+
+obj.grow(3)
+obj.size // 5
 ```
 
 ## Class
@@ -686,7 +774,7 @@ Snark's class syntax is not same as ES2015 class syntax. Check [class document](
 
 ## Pattern matching
 
-Pattern matching is a common pattern in functional programming language to wrap values with additional information. Check [pattern matching document](./PatternMatching.md) for details.
+Pattern matching is a common pattern in functional programming language to wrap values with additional informations. Check [pattern matching document](./PatternMatching.md) for details.
 
 ## Range expression
 

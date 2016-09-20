@@ -50,12 +50,12 @@ for i of 1~100 {
   bart.write("I WILL DO ENJOY PROGRAMMING - ${i}")
 }
 
-console.log(
-  switch student.age {
-    case  _ ~<14 -> "${student.name} cannot get driver's license"
-    case 14 ~ _  -> "${student.name} can get his/her driver's license"
-  }
-)
+bart.school = switch bart.age {
+  case 7  ~ 11 -> "Elementary school"
+  case 12 ~ 14 -> "Middle school"
+  case 15 ~ 18 -> "High school"
+  else -> "Hmm?"
+}
 
 let students = Map::new()
 
@@ -74,6 +74,22 @@ switch {
   else -> do {
     console.log('Everything has done right')
   }
+}
+
+let someTask = async {
+  let [homer, marge] = await getParentsAsync(bart)
+
+  let hairColor = do {
+    let color = marge.hairColor
+
+    if color == 'white' {
+      return 'silver'
+    }
+
+    return color
+  }
+
+  return homer
 }
 ```
 
