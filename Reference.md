@@ -26,6 +26,8 @@ let array = ['foo', 'bar', 'baz']
   .filter(filterFn)
 ```
 
+## Scope
+
 ## Literal
 
 Snark exposes basic literals to represent values
@@ -249,22 +251,6 @@ const __symbol_prop = Symbol('prop')
 obj[__symbol_prop]
 ```
 
-### List of well-known symbols
-
-ECMAScript provides some well-known symbols to allow customizing language-level features such as for-of statements. In this flavor, Snark adds some its own well-known symbols to provide new features.
-
-  - JS well-known symbols
-
-    `#iterator`, `#match`, `#replace`, `#search`, `#split`, `#hasInstance`, `#isConcatSpreadable`, `#unscopable`, `#species`, `#toPrimitive`, `#toStringTag`
-
-    `#asyncIterator` - not in ES2015 spec, but will be added to ES soon. Polyfilled by Snark runtime.
-
-  - Snark well-known symbols
-
-    `#get`, `#set`, `#in`, `#case`
-
-    `#proto` - alias for `'__proto__'`.
-
 ## Module
 
 Snark module has same semantics as ES2015 module spec, to provide complete interoperability with JS.
@@ -349,6 +335,22 @@ obj.#wn = 0
 ```
 
 Note that you can only shorten property name to symbol identifiers, to prevent namespace conflict. for example, `import {'long' as l}` is not allowed.
+
+### List of well-known symbols
+
+ECMAScript provides some well-known symbols to allow customizing language-level features such as for-of statements. In this flavor, Snark adds some its own well-known symbols to provide new features.
+
+  - JS well-known symbols
+
+    `#iterator`, `#match`, `#replace`, `#search`, `#split`, `#hasInstance`, `#isConcatSpreadable`, `#unscopable`, `#species`, `#toPrimitive`, `#toStringTag`
+
+    `#asyncIterator` - not in ES2015 spec, but will be added to ES soon. Polyfilled by Snark runtime.
+
+  - Snark well-known symbols
+
+    `#get`, `#set`, `#in`, `#case`
+
+    `#proto` - alias for `'__proto__'`.
 
 ## Expression
 
@@ -488,44 +490,6 @@ map?[key -> value] // "typeof map.#set !== 'function' ? null : map.#set(key)" in
 obj?.prop?[key]?()
 ```
 
-### In operator
-
-Check given value is a member of the given collection or not.
-
-```
-let foo = 'foo'
-
-if foo in ['foo', 'bar', 'baz'] {
-  console.log('yup')
-}
-
-if foo not in someListWithoutFoo {
-  console.log('nope')
-}
-```
-
-Under the hood, this syntax is a shortcut for calling collection's method named with well-known symbol `#in`.
-
-```
-import {#in}
-
-let fwords = {
-  #in = arg => (arg in case String) and (arg.startsWith('f'))
-}
-
-'foo' in fwords // true
-```
-
-### Case operator
-
-Perform one time pattern matching. For detail, see [pattern matching](#pattern-matching).
-
-```
-if myBreakfast case of Pizza as {topping, dough} {
-  console.log("I ate pizza with ${topping} over ${dough}")
-}
-```
-
 ### Switch expression
 
 `switch` is expression in Snark. It checks given value with applied conditions and return evaluated expression of matching one.
@@ -546,11 +510,31 @@ If condition clause starts with `case` keyword, it performs pattern matching ins
 
 ```
 console.log(switch myBreakfast {
-  case Pizza as {topping, dough} -> "I ate pizza with ${topping} over ${dough}"
+  case Pizza with {topping, dough} -> "I ate pizza with ${topping} over ${dough}"
   case Pancake -> 'I ate pancake'
-  case Donut as {isRing} with isRing -> "I ate ring-shaped Donut"
+  case Donut with {isRing} with isRing -> "I ate ring-shaped Donut"
   else -> 'I ate ...something'
 })
+```
+
+### In operator
+
+Perform one time pattern matching. For detail, see [pattern matching](#pattern-matching).
+
+```
+if myBreakfast in Pizza with {topping, dough} {
+  console.log("I ate pizza with ${topping} over ${dough}")
+}
+```
+
+### As operator
+
+Declare variables to it's following scope and assign given value to it. Evaluated as given value itself.
+
+```
+if getChild() as john {
+  john.runAway()
+}
 ```
 
 ## Statement
@@ -571,13 +555,19 @@ Assign some value to variable or object property.
 
   `<identifier>`
 
-  assign value to the variable with given identifier.
+  Assign value to the variable with given identifier.
 
 1. Object pattern
 
   `{ <identifier>, <identifier> as <assignment pattern>, ... }`
 
-  Destructure given
+  Destructure given value as given pattern and assign them.
+
+1. Array pattern
+
+  `[ <assignment pattern>, ... ]`
+
+  Extract contents from given iterable object and assign them.
 
 ### Variable declaration
 
@@ -589,7 +579,7 @@ Note that variables cannot be re-assigned except explicitly declared as mutable.
 
 - `let mut bar = 443`
 
-Generally variable declaration statement follows `let <assignment pattern> = <expression>` form. But object property pattern is not allowed here.
+Generally variable declaration statement follows `let <assignment pattern> = <expression>` form. Identifiers inside assignment pattern are declared as variable. To make it mutable, place `mut` before it.
 
 - `let {age, parents as [father, mother]} = john`
 
@@ -597,7 +587,22 @@ Snark does not allow double-underscore(`__`) prefixed variable name like `__foo`
 
 ### Assignment statement
 
-Assign new value to the given place. Assignment statement follows `<assignment pattern> = <expression>` form.
+Assign new value to the given place.
+
+- `<assignment pattern> = <expression>`
+
+  Destruct given expression and assign them to the variables.
+
+  ```
+  foo = 'bar'
+  {name, age} = john
+  ```
+
+- `<expression>.<identifier> = <expression>`
+
+- `<identifier> <operator>= <expression>`
+
+- `<expression>.<identifier> <operator>= <expression>`
 
 Note that assignment is statement, not a expression. So you can't use this inside of `if` condition.
 
@@ -772,19 +777,17 @@ obj.size // 5
 
 Snark's class syntax is not same as ES2015 class syntax. Check [class document](./Class.md) for details.
 
-## Pattern matching
-
-Pattern matching is a common pattern in functional programming language to wrap values with additional informations. Check [pattern matching document](./PatternMatching.md) for details.
-
 ## Range expression
 
 It's infinitely common pattern to use numeric sequence in programming. Snark provide syntactic shortcut for such patterns.
 
 Basic syntax for range expression is `a ~ b`. It generate `Range` object with range from a to b, inclusive. Value of `a` and `b` must be a number and follows `a <= b` or it throws error. To mark some endpoint as exclusive, add `<` at that side. ex) `a ~< b` or `a <~ b`, or both side.
 
-### In operator
+Range object can be used as match pattern or iterable.
 
-Evaluated as true if value is number and within given range.
+### As match pattern
+
+Match if value is number and within given range. Extracts given number itself.
 
 ```
 3 in 2~4  // true
@@ -792,18 +795,7 @@ Evaluated as true if value is number and within given range.
 7 in 5~<7 // false
 ```
 
-### Case operator
-
-Same as `in` operator. Extracts value itself.
-
-```
-switch getNum() {
-  case 1~4 as i -> doSomething(i)
-  else -> doNothing()
-}
-```
-
-### For of statement
+### As iterable
 
 Iterate from left number to right number with interval 1. Bottom-exclusive range is not valid for this usage.
 
