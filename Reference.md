@@ -1,7 +1,7 @@
 Language reference
 ==================
 
-Snark language reference.
+Snark language specification version 0.1
 
 ## Line break semantics
 
@@ -28,6 +28,8 @@ let array = ['foo', 'bar', 'baz']
 
 ## Scope
 
+Unlike traditional namespace-lacking JS, every syntactic element in Snark has its own scope. Every identifier MUST be declared in its own or any ancestor scope before use.
+
 ## Literal
 
 Snark exposes basic literals to represent values
@@ -51,7 +53,7 @@ Singleton literal
 When used as assignment pattern, values that targets this literal will simply be ignored.
 
 ```
-let [a, _, c] = [1 ~ 5]
+let [a, _, c] = 1 ~ 5
 // a == 1, c == 3
 
 for [_, data] of someMap {
@@ -59,7 +61,7 @@ for [_, data] of someMap {
 }
 ```
 
-When used as expression, it represent value that is `undefined` or `void 0` in JS.
+When used as expression, it represents a value same as `undefined` or `void 0` in JS.
 
 ```
 let obj = {}
@@ -325,16 +327,16 @@ myList.#itr = myIteratorGenerator
 // myList[Symbol.iterator] = myIteratorGenerator
 ```
 
-If you want to shorten some weird-and-unnecessarily-long-property-name(TM), declare it.
+If you want to shorten some `weird-and-unnecessarily-long-property-name(TM)`, declare it.
 
 ```
-import {'weird-and-unnecessarily-long-property-name' as #wn}
+import {'weird-and-unnecessarily-long-property-name(TM)' as #wn}
 
 obj.#wn = 0
-// obj['weird-and-unnecessarily-long-property-name'] = 0
+// obj['weird-and-unnecessarily-long-property-name(TM)'] = 0
 ```
 
-Note that you can only shorten property name to symbol identifiers, to prevent namespace conflict. for example, `import {'long' as l}` is not allowed.
+Note that you can only shorten property name to symbol identifiers, to prevent namespace conflict. For example, `import {'long' as l}` is not allowed.
 
 ### List of well-known symbols
 
@@ -348,15 +350,67 @@ ECMAScript provides some well-known symbols to allow customizing language-level 
 
   - Snark well-known symbols
 
-    `#get`, `#set`, `#in`, `#case`
+    `#get`, `#set`, `#exec`
 
     `#proto` - alias for `'__proto__'`.
+
+## Pattern matching
+
+Pattern matching is a technique to determine a given value to ensure that it meets the specific pattern. Commonly pattern matching also provides functionality to extract properties of interest from given value, only if value is matching with pattern.
+
+You can use this feature in two forms. To perform one-time pattern matching, use `in` operator. To match against multiple patterns, use `switch-case` expression.
+
+```
+if guest in Friend with {community, face} {
+  community.uploadSelfie(face)
+}
+```
+
+```
+fn processMessage message => switch message {
+  case Join    with {id}      -> createSession(id)
+  case Ping    with {id}      -> sendPong(id)
+  case Message with {id, msg} -> sessions[id].handleMessage(msg)
+  case Quit    with {id}      -> removeSession(id)
+}
+```
+
+At the base, pattern matching in Snark is just a method call of the pattern object. A well-known symbol `#exec` is provided for it.
+
+```
+import {#exec}
+
+let Friend = {
+  place = Map::new()
+  addFriend = (this, person, comm) => this.place.set(person, comm)
+  #exec = (this, person) => do {
+    if this.place.has(person) {
+      return {
+        match = true
+        value = {
+          name = person.name
+          community = this.communityMap.get(person)
+          face = person.takePicture()
+        }
+      }
+    }
+
+    return {match = false}
+  }
+}
+```
+
+As shown above, a method `#exec` returns `{match, value}` form. `match` is a boolean value to determine this pattern matching is successed. `value` is an extracted value to be provided.
 
 ## Expression
 
 Expressions can be evaluated as a value.
 
 ### Arithmetic operator
+
+Perform arithmetic operation with given numbers.
+
+`<number> <operator> <number>` -> `number`
 
 - `1 + 2 // 3`
 
@@ -372,6 +426,8 @@ Note that `+` operator should be used only with numbers. Though it's possible to
 
 Logical operators are used for boolean arithmetic.
 
+`<expression> <operator> <expression>` -> `boolean`
+
 - `a and b` - both `a` and `b` are truthy.
 
 - `a or b` - either `a` or `b` is truthy.
@@ -380,6 +436,10 @@ Logical operators are used for boolean arithmetic.
 
 ### Comparison operator
 
+Compare given values.
+
+`<expression> <operator> <expression>` -> `boolean`
+
 - `a == b` - `a` and `b` are strictly equal.
 
 - `a != b` - `a` and `b` are not strictly equal.
@@ -387,6 +447,8 @@ Logical operators are used for boolean arithmetic.
 Note that non-strict equality operators(`===` and `!==` in JS) is not exist in Snark.
 
 Operators below are only able to be used with numbers.
+
+`<number> <operator> <number>` -> `boolean`
 
 - `a > b` - `a` is greater then `b`
 
@@ -422,7 +484,7 @@ Syntaxes below are just for legacy JS interoperability.
 
 ### Virtual method
 
-Also known as `Function bind syntax`. This syntax binds given object as a execution context to the following function. For detail, see [method](#Method) section.
+Also known as `Function bind syntax`. This syntax binds given object as a call context to the following function. For detail, see [method](#method) section.
 
 ```
 myIterable::map(mapFn)::filter(filterFn)
@@ -444,7 +506,7 @@ let map = Map::new([
 
 ### Collection getter/setter
 
-Using Map should be easier then traditional object-as-dictionary approach. That's why Snark adds such a syntax. To use these, first you should declare some well-known symbols. And boom!
+Using Map should be easier then traditional object-as-dictionary approach. That's why Snark adds such a syntax. To use these, first you should declare some well-known symbols.
 
 ```
 import {#get, #set}
@@ -497,6 +559,12 @@ obj?.prop?[key]?()
 Basically, condition matching in switch expression is strict equality check, same as `==` operator.
 
 ```
+switch <expression> {
+  <expression> -> <expression>
+}
+```
+
+```
 console.log(switch 'bar' {
   'foo' -> 'found "foo"'
   'bar' -> 'found "bar"'
@@ -506,7 +574,14 @@ console.log(switch 'bar' {
 // found "bar"
 ```
 
-If condition clause starts with `case` keyword, it performs pattern matching instead. See [here](#pattern-matching) for more detail.
+If condition clause starts with `case` keyword, it performs pattern matching instead. See [here](#pattern-matching) for more detail. `case` conditions and normal conditions can be mixed within same `switch` block.
+
+```
+switch <expression> {
+  case <expression> -> <expression>
+  case <expression> with <assignment pattern> -> <expression>
+}
+```
 
 ```
 console.log(switch myBreakfast {
@@ -517,9 +592,29 @@ console.log(switch myBreakfast {
 })
 ```
 
+If you omit the argument of `switch` expression, it only check that given condition is truthy, just like an `else-if` chain. In this case, `case` condition is not allowed.
+
+```
+switch {
+  <expression> -> <expression>
+}
+```
+
+```
+switch {
+  truth == 0 -> console.log('nope')
+  truth == 1 -> console.log('maybe not')
+  truth == 42 -> console.log('best answer until more valid question is found')
+}
+```
+
 ### In operator
 
 Perform one time pattern matching. For detail, see [pattern matching](#pattern-matching).
+
+`<expression> in <expression>` -> `boolean`
+
+`<expression> in <expression> with <assignment pattern>` -> `boolean`
 
 ```
 if myBreakfast in Pizza with {topping, dough} {
@@ -541,14 +636,6 @@ if getChild() as john {
 
 Statements are instruction to define how program is executed. They cannot be evaluated as a value.
 
-### Assignment statement
-
-Assign some value to variable or object property.
-
-- `foo = 'bar'`
-
-- `obj.#bar = 'baz'`
-
 #### Assignment pattern
 
 1. Identifier pattern
@@ -569,6 +656,31 @@ Assign some value to variable or object property.
 
   Extract contents from given iterable object and assign them.
 
+### Assignment statement
+
+Assign new value to the given place.
+
+- `<assignment pattern> = <expression>`
+
+  Destruct given value and assign them to the variables.
+
+  ```
+  foo = 'bar'
+  {name, age} = john
+  ```
+
+- `<expression>.<identifier> = <expression>`
+
+  Assign given value to object's property.
+
+- `<identifier> <operator>= <expression>`
+
+- `<expression>.<identifier> <operator>= <expression>`
+
+Perform operation with given variable/property and re-assign it back.
+
+Note that assignment is statement, not a expression. So you can't use this inside of `if` condition.
+
 ### Variable declaration
 
 Declare variable to the current scope. All variables MUST be declared before use. Initialization is required, not optional.
@@ -584,47 +696,6 @@ Generally variable declaration statement follows `let <assignment pattern> = <ex
 - `let {age, parents as [father, mother]} = john`
 
 Snark does not allow double-underscore(`__`) prefixed variable name like `__foo`. It's not a technical limitation, but just a policy to improve readability of compiled output JS code.
-
-### Assignment statement
-
-Assign new value to the given place.
-
-- `<assignment pattern> = <expression>`
-
-  Destruct given expression and assign them to the variables.
-
-  ```
-  foo = 'bar'
-  {name, age} = john
-  ```
-
-- `<expression>.<identifier> = <expression>`
-
-- `<identifier> <operator>= <expression>`
-
-- `<expression>.<identifier> <operator>= <expression>`
-
-Note that assignment is statement, not a expression. So you can't use this inside of `if` condition.
-
-#### Assignment pattern
-
-Position that assignment can be applied.
-
-- Mutable variable - `foo = 42`
-
-- Object property - `obj.foo = 42`, `obj.#foo = 42`
-
-- Object pattern - `{}`
-
-- Array pattern - `[foo, bar] = someList`
-
-- `bar = 80`
-
-- `obj.quux = foo`
-
-- `bar += 1`
-
-- `obj.quux *= 2`
 
 ### If statement
 
@@ -667,11 +738,21 @@ while count < 10 {
 
 ### For of statement
 
-Iterate over given object.
+Iterate over given iterable object.
 
 ```
 for name of ['Alex', 'Amy', 'Anna'] {
   addFriend(name)
+}
+```
+
+To avoid common pitfall of JS, Every variables are newly created per iteration. And just like normal variables, it's not mutable except explicitly declared as mutable.
+
+```
+for {name, mut age} of getPeople() {
+  setTimeout(#(console.log(name)), 1000) // Just nice Snark code
+  age += 1
+  console.log(age)
 }
 ```
 
@@ -698,14 +779,17 @@ console.log(COND_B in PossibleConditions) // true
 console.log('NOT_VALID' in PossibleConditions) // false
 ```
 
-## Function and do statement
+## Function and do expression
 
-Snark does not support traditional function syntax, Like `function (arguments) {function body}`. To implement this, you must combine function AND do statement.
+Snark does not support traditional function syntax, like `function (arguments) {function body}`. To implement this, you must combine function AND do expression.
 
 ### Function
 
 Functions takes arguments and returns output value. They may has optional name, for recursive call and easy debugging.
+
 Named function in statement-level will be treated as function declaration. Unlike JS, they will not be hosted.
+
+Note that non-named function cannot call itself in it's body.
 
 ```
 arr.map(el => "${el} is nice")
@@ -717,9 +801,22 @@ fn random (min, max) => min + (Math.random() * (max - min))
 let random = fn random (min, max) => min + (Math.random() * (max - min))
 ```
 
-### Do statement
+#### Shorthand function expression
 
-Do statement has same effect as IIEF, a well-known pattern in JS.
+Even more shortened function expression.
+
+```
+arr.reduce( #(#0 + #1) )
+// same as
+arr.reduce((arg0, arg1) => arg1 + arg2)
+
+let logSomething = #(console.log('something')) // () => console.log('something')
+logSomething() // something
+```
+
+### Do expression
+
+Do expression has same effect as IIEF, a well-known pattern in JS.
 
 ```
 let result = do {
@@ -730,7 +827,7 @@ let result = do {
 ```
 
 ```
-fn bumpAll (a, b, c) => do {
+fn bumpThree (a, b, c) => do {
   bump(a)
   bump(b)
   bump(c)
@@ -759,7 +856,7 @@ async* {
 
 ### Method
 
-In some case, we should access function's execution context called `this`. Unlike JS, you cannot do this unless you explicitly declare the function as a method. To write method, just include keyword `this` as a first argument of the function.
+In some case, we should access function's call context which known as `this`. Unlike JS, you cannot do this unless you explicitly declare the function as a method. To write method, just include keyword `this` as a first argument of the function.
 
 ```
 let obj = {
