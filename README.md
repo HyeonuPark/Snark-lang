@@ -66,7 +66,7 @@ switch {
   bart.age != 10 -> do {
     console.log('He should be 10')
   }
-  bart.gender?.toUpperCase?() == 'MALE' -> do {
+  bart.gender?.toUpperCase?() != 'MALE' -> do {
     console.log('Well.. maybe it\'s lisa, his sister')
   }
   else -> do {

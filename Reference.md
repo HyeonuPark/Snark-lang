@@ -73,8 +73,6 @@ obj.foo == _ // true
 
 You can freely insert `_` characters between numbers to improve readability. Hexadecimal, octal, binary and scientific representation are also supported.
 
-Note that `_` prefixed numbers are treated as normal identifier.
-
 - `42`
 
 - `0xFF`
@@ -89,9 +87,9 @@ Note that `_` prefixed numbers are treated as normal identifier.
 
 - `0x1D_2E_3F`
 
-Not this
+Note that `_` prefixed numbers are treated as normal identifier.
 
-- `_123`
+- `_123` - not a number
 
 ### String literal
 
@@ -223,7 +221,7 @@ let pairs = [
 ]
 ```
 
-## Private identifier(Symbol)
+## Private identifier
 
 Like normal identifiers, private identifiers can be used as a variable name or a property key. But it's guaranteed to be unique across all modules.
 
