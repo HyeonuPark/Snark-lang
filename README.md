@@ -11,8 +11,6 @@ In detail, Snark is a programming language that compiles into JavaScript. Like C
 
 Snark's main purpose is to integrate modern JavaScript's features with language syntax, without breaking most of idiomatic patterns.
 
-Additionally, Snark adds bunch of cool features which makes it easy to use such modern techniques.
-
 ## Overview
 
 ```
